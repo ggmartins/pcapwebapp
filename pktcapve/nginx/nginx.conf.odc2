@@ -17,7 +17,7 @@ http {
     server {
         listen       8000;
 	#odc2 does not face internet, of to '*' here
-        server_name  0.0.0.0;
+        server_name  192.168.143.1;
 
         location / {
             #root   html;
