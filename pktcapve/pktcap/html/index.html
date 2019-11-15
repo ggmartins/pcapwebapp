@@ -1,0 +1,214 @@
+<!doctype html>
+<html class="no-js" lang="">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <title>Packet Capture</title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link rel="manifest" href="site.webmanifest">
+        <link rel="apple-touch-icon" href="icon.png">
+        <!-- Place favicon.ico in the root directory -->
+
+        <link href="/s/css/fa/css/all.css" rel="stylesheet"> <!--load all styles -->
+        <!--script src="/s/js/utils.js"-->
+        <style>
+            .fa-play-circle.enabled:hover{
+                color: red;
+            }
+            .fa-stop-circle.enabled:hover {
+                color: red;
+            }   
+            .fa-stop-circle.disabled  {
+                color: gray;
+            }
+            .fa-stop-circle.disabled:hover   {
+                color: gray;
+            }
+        </style>
+        <script>
+            function status(response) {
+                if (response.status >= 200 && response.status < 300) {
+                    return Promise.resolve(response)
+                } else {
+                    return Promise.reject(new Error(response.statusText))
+                }
+            }
+
+            function text(response) {
+                return response.text()
+            }
+            function json(response) {
+                return response.json()
+            }
+
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            function checkInterval(flag) {
+              if(flag)
+                checkStatus = setInterval(function() {
+                    var button=document.getElementById('button');
+                    if (button.classList.contains("disabled")) {
+                        console.log("existing...")
+                        return; 
+                    }
+                    fetch('/status')
+                    .then(status)
+                    .then(text)
+                    .then(function(data) {
+                        if (data == 'running') {
+                            status_bot.hidden = false;
+                            status_bot.innerHTML="Running..."
+                            button.className = "far fa-stop-circle fa-3x enabled";
+                        } else if (data == 'stopped') {
+                            status_bot.hidden = false;
+                            status_bot.innerHTML="Stopped."
+                            button.className = "far fa-play-circle fa-3x enabled";
+                        } else {
+                            status_bot.innerHTML=data;
+                        }
+                   }); 
+                }, 3000);
+            else
+                clearInterval(checkStatus);
+            }
+
+
+            function scan(){
+                fetch('/scan')
+                    .then(status)
+                    .then(json)
+                    .then(async function(data) {
+                        table=document.getElementById("table_files");
+
+                        //for(var i = 0; i <table.rows.length; i++)
+                        while(table.hasChildNodes())
+                        {
+                           table.removeChild(table.firstChild);
+                        }
+                        table.insertRow(0).insertCell(0).innerHTML="Files:";
+                        for(i in data){
+                            console.log(data[i]);
+                            
+                            //node=document.getElementById('header').cloneNode(true),
+                            var row = table.insertRow(1).insertCell(0).innerHTML=data[i];
+                            //node=document.createTextNode(data[i]);
+                            //table.appendChild(node);
+                        }
+                }).catch(function(error)  {
+                    console.log(error);
+                });
+            }
+
+
+	    window.onload = function() {
+              var status_bot=document.getElementById('status_bot');
+              status_bot.innerHTML="Loading...";
+              checkInterval(true);
+              scan();
+            }
+
+            async function start_stop(){
+                var status_bot=document.getElementById('status_bot');
+                var button=document.getElementById('button');
+                if (button.classList.contains("disabled")) {
+                    console.log("disabled");
+                    return; 
+                }
+
+                fetch('/status')
+                    .then(status)
+                    .then(text)
+                    .then(function(data) {
+                        if (data == 'stopped') {    
+                            status_bot.innerHTML="Running..."
+                            button.className = "far fa-stop-circle fa-3x disabled";
+                            fetch('/start')
+                            .then(status)
+                            .then(text)
+                            .then(async function(data) {
+                                if (data == 'running') {
+                                    console.log("ok");
+                                    checkInterval(false);
+                                    //status_bot.innerHTML="Running..."
+                                    //button.className = "far fa-stop-circle fa-3x disabled";
+                                    await sleep(500);                        
+                                    //button.className = "far fa-stop-circle fa-3x enabled";
+                                    checkInterval(true);
+                                } else if( data== 'stopped') {
+                                    status_bot.innerHTML="WARNING: Failed to run.";
+                                } else {
+                                    status_bot.innerHTML=data;
+ 				}
+                                button.className = "far fa-stop-circle fa-3x enabled";
+                            });
+                        } else if (data == 'running') {
+                            status_bot.innerHTML="Stopping..."
+                            button.className = "far fa-stop-circle fa-3x disabled";
+                            fetch('/stop')
+                            .then(status)
+                            .then(text)
+                            .then(async function(data) {
+                                if (data == 'ok') {
+                                    //console.log("ok");
+                                    checkInterval(false);
+                                    //status_bot.innerHTML="Stopping..."
+                                    //button.className = "far fa-stop-circle fa-3x disabled";
+                                    await sleep(2000);
+                                    scan();
+                                    //button.className = "far fa-stop-circle fa-3x enabled";
+                                    checkInterval(true);
+                                } else {
+                                    status_bot.innerHTML=data;
+                                }
+                                button.className = "far fa-stop-circle fa-3x enabled";
+                            });
+                        } else {
+                            status_bot.innerHTML=data;
+                        }
+                    }).catch(function(error) {
+                        status_bot.innerHTML=error;
+                });
+
+                //fetch(
+                //    '/status',
+                //    { method: 'GET' }
+                //)
+                //.then( response => console.log(response) )
+                //.catch( error => console.error('error:', error) );
+                //.then( response => response.json() )
+                //.then( json => console.log(json) )
+                //.catch( error => console.error('error:', error) );
+
+                if (window.running) {
+                    //alert("stopping");
+
+                } else {
+
+
+                    window.running = true;
+                }
+
+            }
+        </script>
+    </head>
+    <body>
+        <div style="text-align: center; "> <!--display: flex;justify-content: center; flex-direction: column;-->
+            <label id="status_top">Start Packet Capture</label>
+            <br>
+            <span onclick="start_stop()">
+                    <i class="far fa-play-circle fa-3x enabled" id="button"></i>
+            </span>
+            <br>
+            <label id="status_bot"></label>
+            <br>
+            <table id="table_files" width="400px" style="border: 1px solid black; margin: 0 auto; text-align: left;">
+            </table>
+        </div>
+        <script>
+        </script>
+    </body>    
+</html>
