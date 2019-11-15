@@ -30,7 +30,7 @@ http {
 
     	location /s/ {
             autoindex on;
-            alias /home/pi/pktcapve/nginx/rpi2/html/s/;
+            alias /home/pi/pktcapve/nginx/rpi3/html/s/;
         }
 
         error_page   500 502 503 504  /50x.html;
