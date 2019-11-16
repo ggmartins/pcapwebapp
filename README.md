@@ -7,4 +7,6 @@ How to run:
 
       $source pktcapve/bin/activate
       
+2. run nginx
+      
       $cd pktcapve/nginx; bash run.sh
